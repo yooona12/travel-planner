@@ -410,3 +410,38 @@
   font-weight: 700;
   color: #3B82F6;
 }
+
+.cost-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cost-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.cost-list li::before {
+  content: '•';
+  color: #3B82F6;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cost-list li.cost-total {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #E2E8F0;
+  font-weight: 700;
+  color: #3B82F6;
+  font-size: 15px;
+}
+
+.cost-list li.cost-total::before {
+  content: '💰';
+}

@@ -85,7 +85,13 @@ function buildPrompt(selections, lang, region, customBudget) {
   const regionKo = region === 'domestic' ? '국내' : '해외'
   const regionEn = region === 'domestic' ? 'Domestic (South Korea)' : 'Overseas (international)'
   if (lang === 'ko') {
-    return `당신은 전문 여행 컨설턴트입니다. 아래 조건에 맞는 여행지 3곳을 추천해주세요.
+    return `[언어 규칙 - 최우선 적용]
+모든 텍스트는 반드시 순수 한국어(한글)로만 작성할 것.
+한자, 중국어, 일본어, 베트남어 등 어떤 외국어도 절대 사용하지 말 것.
+고유명사(여행지 이름, 관광지, 숙소 등)도 반드시 한글로 표기할 것.
+이 규칙을 어기면 응답 전체가 무효 처리됨.
+
+당신은 전문 여행 컨설턴트입니다. 아래 조건에 맞는 여행지 3곳을 추천해주세요.
 
 조건:
 - 여행 지역: ${regionKo}
@@ -101,7 +107,7 @@ function buildPrompt(selections, lang, region, customBudget) {
       "name": "여행지 이름",
       "reason": "이 여행지를 추천하는 이유 (2-3문장)",
       "schedule": "구체적인 일정 (일별로 나열)",
-      "cost": "예상 비용 (1인 기준, 구체적인 금액 포함)",
+      "cost": ["항공/교통: 00만원", "숙소: 00만원", "식비: 00만원", "관광/활동: 00만원", "기타: 00만원", "총합계: 00만원"],
       "essentials": ["준비물1", "준비물2", "준비물3", "준비물4", "준비물5"],
       "accommodation": "숙소 추천 (유형, 가격대, 추천 지역 포함)",
       "attractions": ["관광지1", "관광지2", "관광지3", "관광지4", "관광지5"]
@@ -125,7 +131,7 @@ Respond ONLY in the following JSON format (no other text):
       "name": "Destination name",
       "reason": "Why we recommend this destination (2-3 sentences)",
       "schedule": "Detailed itinerary (listed by day)",
-      "cost": "Estimated cost (per person, with specific amounts)",
+      "cost": ["Flights/Transport: $000", "Accommodation: $000", "Food: $000", "Activities: $000", "Others: $000", "Total: $000"],
       "essentials": ["item1", "item2", "item3", "item4", "item5"],
       "accommodation": "Accommodation recommendations (type, price range, area)",
       "attractions": ["attraction1", "attraction2", "attraction3", "attraction4", "attraction5"]
@@ -145,7 +151,7 @@ async function fetchRecommendations(selections, lang, region, customBudget) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       messages: [{ role: 'user', content: buildPrompt(selections, lang, region, customBudget) }],
       response_format: { type: 'json_object' },
     }),
@@ -185,7 +191,15 @@ function DestinationCard({ dest, index, t }) {
         <div className="section-block">
           <div className="section-title">{t.sections.cost}</div>
           <div className="section-content">
-            <span className="cost-value">{dest.cost}</span>
+            {Array.isArray(dest.cost) ? (
+              <ul className="cost-list">
+                {dest.cost.map((item, i) => (
+                  <li key={i} className={i === dest.cost.length - 1 ? 'cost-total' : ''}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="cost-value">{dest.cost}</span>
+            )}
           </div>
         </div>
         <div className="section-block">

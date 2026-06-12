@@ -284,6 +284,57 @@
   border: 1px solid #BFDBFE;
 }
 
+.condition-summary {
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.condition-summary-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+}
+
+.condition-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.condition-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #F1F5F9;
+  border-radius: 20px;
+  padding: 5px 12px;
+  border: 1px solid #E2E8F0;
+}
+
+.condition-tag-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.condition-tag-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3B82F6;
+}
+
 .destination-card {
   background: #fff;
   border-radius: 16px;

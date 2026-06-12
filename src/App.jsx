@@ -27,6 +27,8 @@ const TEXT = {
     badge: '3곳 추천',
     pdfBtn: 'PDF 저장',
     pdfSaving: '저장 중...',
+    conditionTitle: '여행 조건',
+    conditionLabels: { region: '지역', style: '스타일', budget: '예산', people: '인원', duration: '기간' },
     sections: {
       schedule: '📅 일정',
       cost: '💰 예상 비용',
@@ -61,6 +63,8 @@ const TEXT = {
     badge: '3 Picks',
     pdfBtn: 'Save PDF',
     pdfSaving: 'Saving...',
+    conditionTitle: 'Travel Conditions',
+    conditionLabels: { region: 'Region', style: 'Style', budget: 'Budget', people: 'People', duration: 'Duration' },
     sections: {
       schedule: '📅 Itinerary',
       cost: '💰 Estimated Cost',
@@ -77,11 +81,73 @@ const EN_OPTIONS = ['Relaxation', 'Activities', 'Culture', 'Food Tour', 'Mixed',
 
 const CUSTOM_BUDGET = { ko: '직접 입력', en: 'Custom' }
 
-function buildPrompt(selections, lang, region, customBudget) {
-  const { style, people, duration } = selections
-  const budget = (selections.budget === CUSTOM_BUDGET.ko || selections.budget === CUSTOM_BUDGET.en)
-    ? (customBudget || selections.budget)
-    : selections.budget
+const DAYS_MAP = {
+  '당일': 1, '1박2일': 2, '2박3일': 3, '3박4일': 4, '일주일이상': 7,
+  'Day Trip': 1, '1 Night': 2, '2 Nights': 3, '3 Nights': 4, '1 Week+': 7,
+}
+const NIGHTS_MAP = {
+  '당일': 0, '1박2일': 1, '2박3일': 2, '3박4일': 3, '일주일이상': 6,
+  'Day Trip': 0, '1 Night': 1, '2 Nights': 2, '3 Nights': 3, '1 Week+': 6,
+}
+const PEOPLE_MAP = {
+  '혼자': 1, '2인': 2, '3~4인': 4, '5인 이상': 5,
+  'Solo': 1, '2 People': 2, '3~4 People': 4, '5+ People': 5,
+}
+const ACCOM_MAP = {
+  '50만원 이하': 40000, '50~100만원': 50000, '100~200만원': 100000, '200만원 이상': 200000,
+  'Under ₩500k': 40000, '₩500k~1M': 50000, '₩1M~2M': 100000, '₩2M+': 200000,
+}
+const TRANSPORT_MAP = {
+  '당일': 10000, '1박2일': 50000, '2박3일': 80000, '3박4일': 100000, '일주일이상': 150000,
+  'Day Trip': 10000, '1 Night': 50000, '2 Nights': 80000, '3 Nights': 100000, '1 Week+': 150000,
+}
+const HIGH_FOOD_STYLES = ['맛집투어', '휴양', 'Food Tour', 'Relaxation']
+
+function fmt(n) {
+  if (n >= 10000) return `${Math.round(n / 10000)}만원`
+  return `${n.toLocaleString()}원`
+}
+
+function calculateCost(selections, region, lang) {
+  const { style, budget, people, duration } = selections
+  const days     = DAYS_MAP[duration] ?? 2
+  const nights   = NIGHTS_MAP[duration] ?? 1
+  const count    = PEOPLE_MAP[people] ?? 1
+  const mealRate = HIGH_FOOD_STYLES.includes(style) ? 20000 : 15000
+  const accomRate    = ACCOM_MAP[budget] ?? 50000
+  const transportPer = (TRANSPORT_MAP[duration] ?? 50000) * (region === 'overseas' ? 2 : 1)
+
+  const food       = mealRate * 3 * days
+  const accom      = accomRate * nights
+  const transport  = transportPer
+  const activity   = 20000 * days
+  const subtotal   = food + accom + transport + activity
+  const others     = Math.round(subtotal * 0.1)
+  const totalPer   = subtotal + others
+  const totalGroup = totalPer * count
+
+  if (lang === 'ko') {
+    return [
+      `교통: ${fmt(transport)}`,
+      `숙소: ${fmt(accom)}`,
+      `식비: ${fmt(food)}`,
+      `관광/활동: ${fmt(activity)}`,
+      `기타: ${fmt(others)}`,
+      `총합계: 1인 ${fmt(totalPer)}${count > 1 ? ` / ${count}인 합계 ${fmt(totalGroup)}` : ''}`,
+    ]
+  }
+  return [
+    `Transport: ${fmt(transport)}`,
+    `Accommodation: ${fmt(accom)}`,
+    `Food: ${fmt(food)}`,
+    `Activities: ${fmt(activity)}`,
+    `Others: ${fmt(others)}`,
+    `Total: ${fmt(totalPer)}/person${count > 1 ? ` · ${fmt(totalGroup)} for ${count}` : ''}`,
+  ]
+}
+
+function buildPrompt(selections, lang, region) {
+  const { style, budget, people, duration } = selections
   const regionKo = region === 'domestic' ? '국내' : '해외'
   const regionEn = region === 'domestic' ? 'Domestic (South Korea)' : 'Overseas (international)'
   if (lang === 'ko') {
@@ -107,9 +173,8 @@ function buildPrompt(selections, lang, region, customBudget) {
       "name": "여행지 이름",
       "reason": "이 여행지를 추천하는 이유 (2-3문장)",
       "schedule": "구체적인 일정 (일별로 나열)",
-      "cost": ["항공/교통: 00만원", "숙소: 00만원", "식비: 00만원", "관광/활동: 00만원", "기타: 00만원", "총합계: 00만원"],
       "essentials": ["준비물1", "준비물2", "준비물3", "준비물4", "준비물5"],
-      "accommodation": "숙소 추천 (유형, 가격대, 추천 지역 포함)",
+      "accommodation": "숙소 추천 (유형, 추천 숙소명, 추천 지역 포함)",
       "attractions": ["관광지1", "관광지2", "관광지3", "관광지4", "관광지5"]
     }
   ]
@@ -131,16 +196,15 @@ Respond ONLY in the following JSON format (no other text):
       "name": "Destination name",
       "reason": "Why we recommend this destination (2-3 sentences)",
       "schedule": "Detailed itinerary (listed by day)",
-      "cost": ["Flights/Transport: $000", "Accommodation: $000", "Food: $000", "Activities: $000", "Others: $000", "Total: $000"],
       "essentials": ["item1", "item2", "item3", "item4", "item5"],
-      "accommodation": "Accommodation recommendations (type, price range, area)",
+      "accommodation": "Accommodation recommendations (type, specific hotel/hostel names, area)",
       "attractions": ["attraction1", "attraction2", "attraction3", "attraction4", "attraction5"]
     }
   ]
 }`
 }
 
-async function fetchRecommendations(selections, lang, region, customBudget) {
+async function fetchRecommendations(selections, lang, region) {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY
   if (!apiKey) throw new Error('API key not found. Please set VITE_GROQ_API_KEY in .env file.')
 
@@ -152,7 +216,7 @@ async function fetchRecommendations(selections, lang, region, customBudget) {
     },
     body: JSON.stringify({
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      messages: [{ role: 'user', content: buildPrompt(selections, lang, region, customBudget) }],
+      messages: [{ role: 'user', content: buildPrompt(selections, lang, region) }],
       response_format: { type: 'json_object' },
     }),
   })
@@ -170,7 +234,9 @@ async function fetchRecommendations(selections, lang, region, customBudget) {
   if (!parsed.destinations || !Array.isArray(parsed.destinations)) {
     throw new Error('Unexpected response format')
   }
-  return parsed.destinations
+
+  const cost = calculateCost(selections, region, lang)
+  return parsed.destinations.map(dest => ({ ...dest, cost }))
 }
 
 function DestinationCard({ dest, index, t }) {
@@ -321,7 +387,7 @@ export default function App() {
     setError(null)
     setResults(null)
     try {
-      const data = await fetchRecommendations(selections, lang, region, customBudget)
+      const data = await fetchRecommendations(selections, lang, region)
       setResults(data)
     } catch (e) {
       setError(e.message)
@@ -412,6 +478,23 @@ export default function App() {
             </button>
           </div>
           <div ref={resultsRef}>
+            <div className="condition-summary">
+              <span className="condition-summary-title">{t.conditionTitle}</span>
+              <div className="condition-tags">
+                {[
+                  { label: t.conditionLabels.region, value: region === 'domestic' ? t.regionDomestic : t.regionOverseas },
+                  { label: t.conditionLabels.style,  value: selections.style },
+                  { label: t.conditionLabels.budget, value: selections.budget === (lang === 'ko' ? '직접 입력' : 'Custom') && customBudget ? customBudget : selections.budget },
+                  { label: t.conditionLabels.people, value: selections.people },
+                  { label: t.conditionLabels.duration, value: selections.duration },
+                ].map(({ label, value }) => (
+                  <div key={label} className="condition-tag">
+                    <span className="condition-tag-label">{label}</span>
+                    <span className="condition-tag-value">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             {results.map((dest, i) => (
               <DestinationCard key={i} dest={dest} index={i} t={t} />
             ))}

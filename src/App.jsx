@@ -572,6 +572,22 @@ function FreePlanner({ lang, t }) {
             </button>
           </div>
           <div ref={resultRef}>
+            <div className="condition-summary">
+              <span className="condition-summary-title">{t.conditionTitle}</span>
+              <div className="condition-tags">
+                {[
+                  { label: t.free.destinationLabel, value: destination },
+                  { label: t.labels.month,    value: `${selections.month} (${getSeason(getMonthNum(selections.month), lang)})` },
+                  { label: t.labels.duration, value: selections.duration },
+                  { label: t.labels.people,   value: selections.people },
+                ].map(({ label, value }) => (
+                  <div key={label} className="condition-tag">
+                    <span className="condition-tag-label">{label}</span>
+                    <span className="condition-tag-value">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="exchange-info-bar">
               <span className="exchange-label">{t.free.exchangeInfo}</span>
               <span className="exchange-rate">{budgetInfo.rateDisplay}</span>

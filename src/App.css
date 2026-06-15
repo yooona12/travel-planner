@@ -47,6 +47,101 @@
   background: #EFF6FF;
 }
 
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+  border-bottom: 2px solid #E2E8F0;
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 10px 22px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: 0;
+}
+
+.tab-btn:hover {
+  color: #3B82F6;
+}
+
+.tab-btn.active {
+  color: #3B82F6;
+  border-bottom-color: #3B82F6;
+  font-weight: 700;
+}
+
+/* Free Planner */
+.free-dest-field {
+  margin-bottom: 20px;
+}
+
+.destination-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 16px;
+  color: #1E293B;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.destination-input::placeholder {
+  color: #94A3B8;
+}
+
+.destination-input:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+
+.free-grid {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 600px) {
+  .free-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.exchange-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.exchange-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #16A34A;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.exchange-rate {
+  font-size: 13px;
+  font-weight: 600;
+  color: #15803D;
+}
+
 /* Form Card */
 .form-card {
   background: #fff;
@@ -454,6 +549,12 @@
   font-weight: 700;
   flex-shrink: 0;
   margin-top: 1px;
+}
+
+.section-weather {
+  background: #F0F9FF;
+  border-color: #BAE6FD;
+  color: #0369A1;
 }
 
 .cost-value {

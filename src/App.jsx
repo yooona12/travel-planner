@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
 
 const TEXT = {
@@ -40,6 +40,12 @@ const TEXT = {
       weather: '🌤️ 날씨 정보',
     },
     reason: '추천 이유',
+    nearbyTitle: '🍽️ 주변 맛집/카페',
+    nearbyRestaurants: '맛집',
+    nearbyCafes: '카페',
+    nearbyLoading: '주변 맛집/카페 검색 중...',
+    nearbyNoResult: '검색 결과가 없습니다.',
+    kakaoMapLink: '지도 보기',
     tab: { ai: '🔍 AI 추천', free: '✏️ 자유 플래너' },
     free: {
       formTitle: '여행 조건 입력',
@@ -90,6 +96,12 @@ const TEXT = {
       weather: '🌤️ Weather',
     },
     reason: 'Why we recommend',
+    nearbyTitle: '🍽️ Nearby Restaurants & Cafes',
+    nearbyRestaurants: 'Restaurants',
+    nearbyCafes: 'Cafes',
+    nearbyLoading: 'Searching nearby places...',
+    nearbyNoResult: 'No results found.',
+    kakaoMapLink: 'View Map',
     tab: { ai: '🔍 AI Picks', free: '✏️ Free Planner' },
     free: {
       formTitle: 'Enter Travel Details',
@@ -319,6 +331,20 @@ async function fetchExchangeRates() {
   return data.conversion_rates
 }
 
+async function fetchKakaoPlaces(query, categoryCode) {
+  const apiKey = import.meta.env.VITE_KAKAO_API_KEY
+  if (!apiKey) return []
+  try {
+    const url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&category_group_code=${categoryCode}&size=5`
+    const res = await fetch(url, { headers: { Authorization: `KakaoAK ${apiKey}` } })
+    if (!res.ok) return []
+    const data = await res.json()
+    return data.documents || []
+  } catch {
+    return []
+  }
+}
+
 function buildFreePlannerPrompt(destination, selections, lang) {
   const { month, duration, people } = selections
   const monthNum = getMonthNum(month)
@@ -435,6 +461,57 @@ function calculateFreePlannerBudget(aiResult, rates, selections, lang) {
     : `1 ${currency_code} = ${krwPerLocal.toLocaleString()} KRW  ·  1 USD = ${Math.round(krwRate).toLocaleString()} KRW`
 
   return { lines, totalLine, rateDisplay, currency_code }
+}
+
+function NearbyPlaces({ destination, t }) {
+  const [restaurants, setRestaurants] = useState(null)
+  const [cafes, setCafes] = useState(null)
+
+  useEffect(() => {
+    setRestaurants(null)
+    setCafes(null)
+    fetchKakaoPlaces(destination, 'FD6').then(setRestaurants)
+    fetchKakaoPlaces(destination, 'CE7').then(setCafes)
+  }, [destination])
+
+  const loading = restaurants === null || cafes === null
+
+  const PlaceList = ({ places, colTitle }) => (
+    <div className="nearby-col">
+      <div className="nearby-col-title">{colTitle}</div>
+      {places.length === 0
+        ? <div className="nearby-empty">{t.nearbyNoResult}</div>
+        : (
+          <ul className="place-list">
+            {places.map((p, i) => (
+              <li key={i} className="place-item">
+                <div className="place-name">{p.place_name}</div>
+                <div className="place-addr">{p.road_address_name || p.address_name}</div>
+                <a href={p.place_url} target="_blank" rel="noopener noreferrer" className="place-link">{t.kakaoMapLink} ↗</a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+  )
+
+  return (
+    <div className="nearby-wrap">
+      <div className="section-title nearby-section-title">{t.nearbyTitle}</div>
+      {loading ? (
+        <div className="nearby-loading">
+          <div className="spinner-small" />
+          <span>{t.nearbyLoading}</span>
+        </div>
+      ) : (
+        <div className="nearby-cols">
+          <PlaceList places={restaurants} colTitle={t.nearbyRestaurants} />
+          <PlaceList places={cafes} colTitle={t.nearbyCafes} />
+        </div>
+      )}
+    </div>
+  )
 }
 
 function FreePlanner({ lang, t }) {
@@ -633,6 +710,11 @@ function FreePlanner({ lang, t }) {
                 </div>
               </div>
             </div>
+            {/한국|korea|대한민국/i.test(result.country) && (
+              <div className="destination-card">
+                <NearbyPlaces destination={destination} t={t} />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -640,7 +722,7 @@ function FreePlanner({ lang, t }) {
   )
 }
 
-function DestinationCard({ dest, index, t }) {
+function DestinationCard({ dest, index, t, region }) {
   return (
     <div className="destination-card">
       <div className="destination-header">
@@ -698,6 +780,7 @@ function DestinationCard({ dest, index, t }) {
           </div>
         </div>
       </div>
+      {region === 'domestic' && <NearbyPlaces destination={dest.name} t={t} />}
     </div>
   )
 }
@@ -921,7 +1004,7 @@ export default function App() {
               </div>
             </div>
             {results.map((dest, i) => (
-              <DestinationCard key={i} dest={dest} index={i} t={t} />
+              <DestinationCard key={i} dest={dest} index={i} t={t} region={region} />
             ))}
           </div>
         </div>
